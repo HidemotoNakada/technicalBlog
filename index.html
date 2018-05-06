@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
         <meta charset="utf-8" />
-        <title>Hidemoto Nakada</title>
+        <title>Test!</title>
         <link rel="stylesheet" href="/theme/css/main.css" />
 
         <!--[if IE]>
@@ -12,7 +12,7 @@
 
 <body id="index" class="home">
         <header id="banner" class="body">
-                <h1><a href="/">Hidemoto Nakada </a></h1>
+                <h1><a href="/">Test! </a></h1>
                 <nav><ul>
                     <li><a href="/pages/about.html">About</a></li>
                     <li><a href="/category/rust.html">Rust</a></li>
@@ -21,7 +21,7 @@
 
             <aside id="featured" class="body">
                 <article>
-                    <h1 class="entry-title"><a href="/testpage.html">Testpage</a></h1>
+                    <h1 class="entry-title"><a href="/rustnoclosuretocopy.html">RustのClosureとCopy</a></h1>
 <footer class="post-info">
         <abbr class="published" title="2016-05-06T10:20:00+09:00">
                 Published: Fri 06 May 2016
@@ -32,21 +32,65 @@
         </address>
 <p>In <a href="/category/rust.html">Rust</a>.</p>
 <p>tags: <a href="/tag/rust.html">rust</a> </p>
-</footer><!-- /.post-info --><h1>TestPage</h1>
-<div class="highlight"><pre><span></span>here is the code
-here is the code
-
-here is the code
+</footer><!-- /.post-info --><h1>RustのClosureとCopy</h1>
+<p>RustのClosureはCopyを実装できないらしい。
+一方で普通の関数では、問題なく自動的に実装されるようだ。</p>
+<div class="highlight"><pre><span></span><span class="nt">fn</span> <span class="nt">spawner_multi</span><span class="o">&lt;</span><span class="nt">F</span><span class="o">&gt;</span> <span class="o">(</span><span class="nt">handler</span> <span class="o">:</span> <span class="nt">F</span> <span class="o">)</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">()</span> 
+<span class="nt">where</span> <span class="nt">F</span> <span class="o">:</span> <span class="nt">Fn</span><span class="o">()</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">()</span> <span class="o">+</span> <span class="nt">Send</span> <span class="o">+</span> <span class="nt">Sync</span> <span class="o">+</span> <span class="nt">Copy</span> <span class="o">+</span> <span class="err">&#39;</span><span class="nt">static</span> 
+<span class="p">{</span>
+     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span> <span class="p">);</span>
+     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span> <span class="p">);</span>
+     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span> <span class="p">);</span>
+<span class="p">}</span>
 </pre></div>
 
 
-<h3>日本語は</h3>
-<p>書ける？</p>
-<ul>
-<li>list</li>
-<li>list</li>
-<li>list</li>
-</ul>                </article>
+<p>こういう、受け取ったFnを復数回spawnする関数を用意しておいて、</p>
+<div class="highlight"><pre><span></span>fn handler() -&gt; () {
+     println!{&quot;in the handler&quot;};
+}
+
+fn main() {
+     spawner_multi( handler );
+}
+</pre></div>
+
+
+<p>とするのはOKなのだが、</p>
+<div class="highlight"><pre><span></span>fn main() {
+     spawner_multi( || handler() );
+}
+</pre></div>
+
+
+<p>とすると、</p>
+<div class="highlight"><pre><span></span>77 |      spawner_multi( || handler() );
+   |      ^^^^^^^^^^^^^ the trait `std::marker::Copy` is not implemented for `[closure@src/main.rs:77:18: 77:30]`
+</pre></div>
+
+
+<p>のようなエラーがでてコンパイルできない。</p>
+<p>関数はCopyなのだが、関数を呼び出すだけのClosureでもCopyにはならないということらしい。</p>
+<h2>Cloneだと？</h2>
+<p>では、Cloneにしてみる。明示的に<code>clone</code>を呼び出す。</p>
+<div class="highlight"><pre><span></span><span class="nt">fn</span> <span class="nt">spawner_multi</span><span class="o">&lt;</span><span class="nt">F</span><span class="o">&gt;</span> <span class="o">(</span><span class="nt">handler</span> <span class="o">:</span> <span class="nt">F</span> <span class="o">)</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">()</span> 
+<span class="nt">where</span> <span class="nt">F</span> <span class="o">:</span> <span class="nt">Fn</span><span class="o">()</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">()</span> <span class="o">+</span> <span class="nt">Send</span> <span class="o">+</span> <span class="nt">Sync</span> <span class="o">+</span> <span class="nt">Clone</span> <span class="o">+</span> <span class="err">&#39;</span><span class="nt">static</span> 
+<span class="p">{</span>
+     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span><span class="err">.</span><span class="kc">clone</span><span class="err">(</span><span class="p">)</span> <span class="p">);</span>
+     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span><span class="err">.</span><span class="kc">clone</span><span class="err">(</span><span class="p">)</span> <span class="p">);</span>
+     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span><span class="err">.</span><span class="kc">clone</span><span class="err">(</span><span class="p">)</span> <span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>これでも、関数はOKだがClosureだと動かない。
+Closureは自動的にCloneにならないということなのだろうが、
+明示的にCloneにする方法もわからない。</p>
+<h2>Issueがあった</h2>
+<p>ぐぐってみたところ、Issueが上がっていた。
+<a href="https://github.com/rust-lang/rfcs/issues/1369">Make Clone a lang-item and implement it for closures whose members are all Clone #1369</a>、
+<a href="https://github.com/rust-lang/rust/issues/44490">Tracking issue for RFC 2132: copy_closures/clone_closures #44490</a>。</p>
+<p>3月25日にCloseされているので、次の1.26では使えるようになるのだろうか。</p>                </article>
             </aside><!-- /#featured -->
         <section id="extras" class="body">
                 <div class="blogroll">
@@ -54,16 +98,13 @@ here is the code
                         <ul>
                             <li><a href="http://getpelican.com/">Pelican</a></li>
                             <li><a href="http://python.org/">Python.org</a></li>
-                            <li><a href="http://jinja.pocoo.org/">Jinja2</a></li>
-                            <li><a href="#">You can modify those links in your config file</a></li>
                         </ul>
                 </div><!-- /.blogroll -->
                 <div class="social">
                         <h2>social</h2>
                         <ul>
 
-                            <li><a href="#">You can add links in your config file</a></li>
-                            <li><a href="#">Another social link</a></li>
+                            <li><a href="https://twitter.com/hidemotoNakada">Twitter</a></li>
                         </ul>
                 </div><!-- /.social -->
         </section><!-- /#extras -->
