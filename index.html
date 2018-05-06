@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
         <meta charset="utf-8" />
-        <title>Test!</title>
+        <title>Hidemon</title>
         <link rel="stylesheet" href="/theme/css/main.css" />
 
         <!--[if IE]>
@@ -12,7 +12,7 @@
 
 <body id="index" class="home">
         <header id="banner" class="body">
-                <h1><a href="/">Test! </a></h1>
+                <h1><a href="/">Hidemon </a></h1>
                 <nav><ul>
                     <li><a href="/pages/about.html">About</a></li>
                     <li><a href="/category/rust.html">Rust</a></li>
@@ -21,7 +21,7 @@
 
             <aside id="featured" class="body">
                 <article>
-                    <h1 class="entry-title"><a href="/rustnoclosuretocopy.html">RustのClosureとCopy</a></h1>
+                    <h1 class="entry-title"><a href="/rustnoclosuretocopyclone.html">RustのClosureとCopy/Clone</a></h1>
 <footer class="post-info">
         <abbr class="published" title="2016-05-06T10:20:00+09:00">
                 Published: Fri 06 May 2016
@@ -70,7 +70,9 @@ fn main() {
 
 
 <p>のようなエラーがでてコンパイルできない。</p>
-<p>関数はCopyなのだが、関数を呼び出すだけのClosureでもCopyにはならないということらしい。</p>
+<p>関数はCopyなのだが、関数を呼び出すだけのClosureでもCopyにはならないということらしい。
+言われてみれば、関数は単なるポインタっぽいのでビットパターンコピーでCopyできるけど、
+Closureはもう少し複雑な何かなので、Copyできないのも不思議ではないのかも。</p>
 <h2>Cloneだと？</h2>
 <p>では、Cloneにしてみる。明示的に<code>clone</code>を呼び出す。</p>
 <div class="highlight"><pre><span></span><span class="nt">fn</span> <span class="nt">spawner_multi</span><span class="o">&lt;</span><span class="nt">F</span><span class="o">&gt;</span> <span class="o">(</span><span class="nt">handler</span> <span class="o">:</span> <span class="nt">F</span> <span class="o">)</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">()</span> 
@@ -86,11 +88,15 @@ fn main() {
 <p>これでも、関数はOKだがClosureだと動かない。
 Closureは自動的にCloneにならないということなのだろうが、
 明示的にCloneにする方法もわからない。</p>
+<p>一般論として、キャプチャされた変数がすべてCloneなのであれば、
+ClosureもCloneになってくれてもいいような気がする。</p>
 <h2>Issueがあった</h2>
 <p>ぐぐってみたところ、Issueが上がっていた。
 <a href="https://github.com/rust-lang/rfcs/issues/1369">Make Clone a lang-item and implement it for closures whose members are all Clone #1369</a>、
 <a href="https://github.com/rust-lang/rust/issues/44490">Tracking issue for RFC 2132: copy_closures/clone_closures #44490</a>。</p>
-<p>3月25日にCloseされているので、次の1.26では使えるようになるのだろうか。</p>                </article>
+<p>2018年3月25日にCloseされている。この日は1.25.0がでた日だ。
+1.25.0では動かないし、release noteにも載っていない。
+次の1.26では使えるようになるのだろうか。</p>                </article>
             </aside><!-- /#featured -->
         <section id="extras" class="body">
                 <div class="blogroll">
