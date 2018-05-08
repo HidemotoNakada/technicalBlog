@@ -15,13 +15,97 @@
                 <h1><a href="/">Hidemon </a></h1>
                 <nav><ul>
                     <li><a href="/pages/about.html">About</a></li>
+                    <li><a href="/category/mpi.html">MPI</a></li>
                     <li><a href="/category/rust.html">Rust</a></li>
                 </ul></nav>
         </header><!-- /#banner -->
 
             <aside id="featured" class="body">
                 <article>
-                    <h1 class="entry-title"><a href="/rustnoclosuretocopyclone.html">RustのClosureとCopy/Clone</a></h1>
+                    <h1 class="entry-title"><a href="/mpirun-to-wrapper.html">mpirun と wrapper</a></h1>
+<footer class="post-info">
+        <abbr class="published" title="2016-05-08T10:20:00+09:00">
+                Published: Sun 08 May 2016
+        </abbr>
+
+        <address class="vcard author">
+                By                         <a class="url fn" href="/author/hidemoto-nakada.html">Hidemoto Nakada</a>
+        </address>
+<p>In <a href="/category/mpi.html">MPI</a>.</p>
+<p>tags: <a href="/tag/mpi.html">mpi</a> </p>
+</footer><!-- /.post-info --><h1>mpirunとwrapper</h1>
+<p>mpirunでジョブを起動する際、通常は</p>
+<div class="highlight"><pre><span></span>mpirun MPI_BINARY
+</pre></div>
+
+
+<p>のように引数にmpiccでコンパイルしたバイナリを指定するわけだが、
+ここに非MPIプログラムを書いて、そこからMPIプロセスを起動しても
+大丈夫なのかを確認して見た。</p>
+<h2>mpiプログラム</h2>
+<p>テストプログラムはこんな感じ。</p>
+<div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;mpi.h&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span> <span class="n">argv</span><span class="p">){</span>
+    <span class="kt">int</span> <span class="n">rank</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="n">MPI_Init</span><span class="p">(</span><span class="o">&amp;</span> <span class="n">argc</span><span class="p">,</span> <span class="o">&amp;</span> <span class="n">argv</span><span class="p">);</span>
+    <span class="n">MPI_Comm_rank</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rank</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;rank = %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="p">);</span>
+    <span class="n">MPI_Finalize</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<h2>wrapper</h2>
+<p>wrapper はpython。上のプログラムを起動するだけ。</p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">subprocess</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="s2">&quot;./mpitest&quot;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
+<span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+
+<h2>テスト</h2>
+<p>pythonのwrapperをmpirunで起動する。</p>
+<div class="highlight"><pre><span></span>$ mpirun -np <span class="m">2</span> python launchtest.py 
+<span class="nv">rank</span> <span class="o">=</span> <span class="m">0</span>
+<span class="nv">rank</span> <span class="o">=</span> <span class="m">1</span>
+</pre></div>
+
+
+<p>うむ動いた。</p>
+<h2>どうなってるのか？</h2>
+<p>よくわからないが、おそらくmpirunが環境変数にいろいろ値をセットしていて、
+それを見てmpiライブラリが何かしているのだろう。</p>
+<p>下のようにして環境変数を見てみると、山のようにいろいろでてくる。</p>
+<div class="highlight"><pre><span></span>$ mpirun --host localhost -np <span class="m">1</span> printenv <span class="p">|</span> grep OMPI
+<span class="nv">OMPI_COMMAND</span><span class="o">=</span>printenv
+<span class="nv">OMPI_MCA_orte_precondition_transports</span><span class="o">=</span>e86c6dc6f222e793-e5e9486159da2671
+<span class="nv">OMPI_MCA_orte_peer_modex_id</span><span class="o">=</span><span class="m">0</span>
+<span class="nv">OMPI_MCA_orte_peer_init_barrier_id</span><span class="o">=</span><span class="m">1</span>
+<span class="nv">OMPI_MCA_orte_peer_fini_barrier_id</span><span class="o">=</span><span class="m">2</span>
+....
+</pre></div>
+
+
+<p>問題はこの方法にどのくらいポータビリティがあるのか、だなあ。。</p>                </article>
+            </aside><!-- /#featured -->
+                <section id="content" class="body">
+                    <h1>Other articles</h1>
+                    <hr />
+                    <ol id="posts-list" class="hfeed">
+
+            <li><article class="hentry">
+                <header>
+                    <h1><a href="/rustnoclosuretocopyclone.html" rel="bookmark"
+                           title="Permalink to RustのClosureとCopy/Clone">RustのClosureとCopy/Clone</a></h1>
+                </header>
+
+                <div class="entry-content">
 <footer class="post-info">
         <abbr class="published" title="2016-05-06T10:20:00+09:00">
                 Published: Fri 06 May 2016
@@ -32,7 +116,7 @@
         </address>
 <p>In <a href="/category/rust.html">Rust</a>.</p>
 <p>tags: <a href="/tag/rust.html">rust</a> </p>
-</footer><!-- /.post-info --><h1>RustのClosureとCopy</h1>
+</footer><!-- /.post-info -->                <h1>RustのClosureとCopy</h1>
 <p>RustのClosureはCopyを実装できないらしい。
 一方で普通の関数では、問題なく自動的に実装されるようだ。</p>
 <div class="highlight"><pre><span></span><span class="nt">fn</span> <span class="nt">spawner_multi</span><span class="o">&lt;</span><span class="nt">F</span><span class="o">&gt;</span> <span class="o">(</span><span class="nt">handler</span> <span class="o">:</span> <span class="nt">F</span> <span class="o">)</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">()</span> 
@@ -65,39 +149,12 @@ fn main() {
 
 <p>とすると、</p>
 <div class="highlight"><pre><span></span>77 |      spawner_multi( || handler() );
-   |      ^^^^^^^^^^^^^ the trait `std::marker::Copy` is not implemented for `[closure@src/main.rs:77:18: 77:30]`
-</pre></div>
-
-
-<p>のようなエラーがでてコンパイルできない。</p>
-<p>関数はCopyなのだが、関数を呼び出すだけのClosureでもCopyにはならないということらしい。
-言われてみれば、関数は単なるポインタっぽいのでビットパターンコピーでCopyできるけど、
-Closureはもう少し複雑な何かなので、Copyできないのも不思議ではないのかも。</p>
-<h2>Cloneだと？</h2>
-<p>では、Cloneにしてみる。明示的に<code>clone</code>を呼び出す。</p>
-<div class="highlight"><pre><span></span><span class="nt">fn</span> <span class="nt">spawner_multi</span><span class="o">&lt;</span><span class="nt">F</span><span class="o">&gt;</span> <span class="o">(</span><span class="nt">handler</span> <span class="o">:</span> <span class="nt">F</span> <span class="o">)</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">()</span> 
-<span class="nt">where</span> <span class="nt">F</span> <span class="o">:</span> <span class="nt">Fn</span><span class="o">()</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">()</span> <span class="o">+</span> <span class="nt">Send</span> <span class="o">+</span> <span class="nt">Sync</span> <span class="o">+</span> <span class="nt">Clone</span> <span class="o">+</span> <span class="err">&#39;</span><span class="nt">static</span> 
-<span class="p">{</span>
-     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span><span class="err">.</span><span class="kc">clone</span><span class="err">(</span><span class="p">)</span> <span class="p">);</span>
-     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span><span class="err">.</span><span class="kc">clone</span><span class="err">(</span><span class="p">)</span> <span class="p">);</span>
-     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span><span class="err">.</span><span class="kc">clone</span><span class="err">(</span><span class="p">)</span> <span class="p">);</span>
-<span class="p">}</span>
-</pre></div>
-
-
-<p>これでも、関数はOKだがClosureだと動かない。
-Closureは自動的にCloneにならないということなのだろうが、
-明示的にCloneにする方法もわからない。</p>
-<p>一般論として、キャプチャされた変数がすべてCloneなのであれば、
-ClosureもCloneになってくれてもいいような気がする。</p>
-<h2>Issueがあった</h2>
-<p>ぐぐってみたところ、Issueが上がっていた。
-<a href="https://github.com/rust-lang/rfcs/issues/1369">Make Clone a lang-item and implement it for closures whose members are all Clone #1369</a>、
-<a href="https://github.com/rust-lang/rust/issues/44490">Tracking issue for RFC 2132: copy_closures/clone_closures #44490</a>。</p>
-<p>2018年3月25日にCloseされている。この日は1.25.0がでた日だ。
-1.25.0では動かないし、release noteにも載っていない。
-次の1.26では使えるようになるのだろうか。</p>                </article>
-            </aside><!-- /#featured -->
+   |      ^^^^^^^^^^^^^ the trait `std::marker …</pre></div>
+                <a class="readmore" href="/rustnoclosuretocopyclone.html">read more</a>
+                </div><!-- /.entry-content -->
+            </article></li>
+                </ol><!-- /#posts-list -->
+                </section><!-- /#content -->
         <section id="extras" class="body">
                 <div class="blogroll">
                         <h2>links</h2>
