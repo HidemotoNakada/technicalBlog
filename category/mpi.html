@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+        <meta charset="utf-8" />
+        <title>Hidemon - MPI</title>
+        <link rel="stylesheet" href="/theme/css/main.css" />
+
+        <!--[if IE]>
+            <script src="https://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+</head>
+
+<body id="index" class="home">
+        <header id="banner" class="body">
+                <h1><a href="/">Hidemon </a></h1>
+                <nav><ul>
+                    <li><a href="/pages/about.html">About</a></li>
+                    <li class="active"><a href="/category/mpi.html">MPI</a></li>
+                    <li><a href="/category/rust.html">Rust</a></li>
+                </ul></nav>
+        </header><!-- /#banner -->
+
+            <aside id="featured" class="body">
+                <article>
+                    <h1 class="entry-title"><a href="/mpirun-to-wrapper.html">mpirun と wrapper</a></h1>
+<footer class="post-info">
+        <abbr class="published" title="2016-05-08T10:20:00+09:00">
+                Published: Sun 08 May 2016
+        </abbr>
+
+        <address class="vcard author">
+                By                         <a class="url fn" href="/author/hidemoto-nakada.html">Hidemoto Nakada</a>
+        </address>
+<p>In <a href="/category/mpi.html">MPI</a>.</p>
+<p>tags: <a href="/tag/mpi.html">mpi</a> </p>
+</footer><!-- /.post-info --><h1>mpirunとwrapper</h1>
+<p>mpirunでジョブを起動する際、通常は</p>
+<div class="highlight"><pre><span></span>mpirun MPI_BINARY
+</pre></div>
+
+
+<p>のように引数にmpiccでコンパイルしたバイナリを指定するわけだが、
+ここに非MPIプログラムを書いて、そこからMPIプロセスを起動しても
+大丈夫なのかを確認して見た。</p>
+<h2>mpiプログラム</h2>
+<p>テストプログラムはこんな感じ。</p>
+<div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;mpi.h&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span> <span class="n">argv</span><span class="p">){</span>
+    <span class="kt">int</span> <span class="n">rank</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="n">MPI_Init</span><span class="p">(</span><span class="o">&amp;</span> <span class="n">argc</span><span class="p">,</span> <span class="o">&amp;</span> <span class="n">argv</span><span class="p">);</span>
+    <span class="n">MPI_Comm_rank</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rank</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;rank = %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="p">);</span>
+    <span class="n">MPI_Finalize</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<h2>wrapper</h2>
+<p>wrapper はpython。上のプログラムを起動するだけ。</p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">subprocess</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="s2">&quot;./mpitest&quot;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
+<span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+
+<h2>テスト</h2>
+<p>pythonのwrapperをmpirunで起動する。</p>
+<div class="highlight"><pre><span></span>$ mpirun -np <span class="m">2</span> python launchtest.py 
+<span class="nv">rank</span> <span class="o">=</span> <span class="m">0</span>
+<span class="nv">rank</span> <span class="o">=</span> <span class="m">1</span>
+</pre></div>
+
+
+<p>うむ動いた。</p>
+<h2>どうなってるのか？</h2>
+<p>よくわからないが、おそらくmpirunが環境変数にいろいろ値をセットしていて、
+それを見てmpiライブラリが何かしているのだろう。</p>
+<p>下のようにして環境変数を見てみると、山のようにいろいろでてくる。</p>
+<div class="highlight"><pre><span></span>$ mpirun --host localhost -np <span class="m">1</span> printenv <span class="p">|</span> grep OMPI
+<span class="nv">OMPI_COMMAND</span><span class="o">=</span>printenv
+<span class="nv">OMPI_MCA_orte_precondition_transports</span><span class="o">=</span>e86c6dc6f222e793-e5e9486159da2671
+<span class="nv">OMPI_MCA_orte_peer_modex_id</span><span class="o">=</span><span class="m">0</span>
+<span class="nv">OMPI_MCA_orte_peer_init_barrier_id</span><span class="o">=</span><span class="m">1</span>
+<span class="nv">OMPI_MCA_orte_peer_fini_barrier_id</span><span class="o">=</span><span class="m">2</span>
+....
+</pre></div>
+
+
+<p>問題はこの方法にどのくらいポータビリティがあるのか、だなあ。。</p>                </article>
+            </aside><!-- /#featured -->
+        <section id="extras" class="body">
+                <div class="blogroll">
+                        <h2>links</h2>
+                        <ul>
+                            <li><a href="http://getpelican.com/">Pelican</a></li>
+                            <li><a href="http://python.org/">Python.org</a></li>
+                        </ul>
+                </div><!-- /.blogroll -->
+                <div class="social">
+                        <h2>social</h2>
+                        <ul>
+
+                            <li><a href="https://twitter.com/hidemotoNakada">Twitter</a></li>
+                        </ul>
+                </div><!-- /.social -->
+        </section><!-- /#extras -->
+
+        <footer id="contentinfo" class="body">
+                <address id="about" class="vcard body">
+                Proudly powered by <a href="http://getpelican.com/">Pelican</a>, which takes great advantage of <a href="http://python.org">Python</a>.
+                </address><!-- /#about -->
+
+                <p>The theme is by <a href="http://coding.smashingmagazine.com/2009/08/04/designing-a-html-5-layout-from-scratch/">Smashing Magazine</a>, thanks!</p>
+        </footer><!-- /#contentinfo -->
+
+</body>
+</html>
