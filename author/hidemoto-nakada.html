@@ -22,7 +22,66 @@
 
             <aside id="featured" class="body">
                 <article>
-                    <h1 class="entry-title"><a href="/mpirun-to-wrapper.html">mpirun と wrapper</a></h1>
+                    <h1 class="entry-title"><a href="/rust-deno-1abs.html">Rust での -1.abs()</a></h1>
+<footer class="post-info">
+        <abbr class="published" title="2016-05-23T10:20:00+09:00">
+                Published: Mon 23 May 2016
+        </abbr>
+
+        <address class="vcard author">
+                By                         <a class="url fn" href="/author/hidemoto-nakada.html">Hidemoto Nakada</a>
+        </address>
+<p>In <a href="/category/rust.html">Rust</a>.</p>
+<p>tags: <a href="/tag/rust.html">rust</a> </p>
+</footer><!-- /.post-info --><h1>Rustでの -1.abs()</h1>
+<p>Rustでは、C++やJavaと違って、組み込み型に対してメソッドを定義する事ができる。
+なので、i32の変数aの絶対値を求めるには、</p>
+<div class="highlight"><pre><span></span>a.abs();
+</pre></div>
+
+
+<p>のように書ける。すばらしい。</p>
+<p>しかしここで落とし穴が１つ。</p>
+<div class="highlight"><pre><span></span>-1.abs();
+</pre></div>
+
+
+<p>とすると、答えが-1になる。なぜか。</p>
+<p><code>-1</code>は、なんとなく1つの不可分なリテラルのような気がしてしまうが、
+単項前置演算子 <code>-</code> が数値リテラル<code>1</code>の前に付いたものだ。
+したがって、<code>-1.abs()</code>が<code>(-1).abs()</code>となるか<code>-(1.abs())</code>となるかは、
+演算子の優先順位によって定まる。そして、Rustではメソッド呼び出しの
+優先順位のほうが単項演算子よりも高いので、後者として解釈されるので、
+答えが<code>-1</code>になるのだ。</p>
+<p>ちなみに、演算子の優先順位は基本的にC++を引き継いでいるので、順位は
+C++でもJavaでも変わらない。C++やJavaでこれが問題にならないのは、
+そもそも組み込み型に対してメソッドを定義できないからだろう。</p>
+<p>まあ、<code>-a.abs()</code> なら <code>-(a.abs())</code>の方が自然なような気がするので
+リテラルのときだけ気をつければ済む話ではある。</p>
+<h2>Rubyでは</h2>
+<p>同様に整数型にメソッドが定義されている、Rubyはどうだろう。</p>
+<div class="highlight"><pre><span></span>$ irb
+irb<span class="o">(</span>main<span class="o">)</span>:001:0&gt; -1.abs
+<span class="o">=</span>&gt; <span class="m">1</span>
+</pre></div>
+
+
+<p>なんとびっくり。
+Rubyではメソッド呼び出しはすべての演算子よりも優先順位が低いのだ。</p>
+<p>それはそれで1つの見識という気もする。</p>                </article>
+            </aside><!-- /#featured -->
+                <section id="content" class="body">
+                    <h1>Other articles</h1>
+                    <hr />
+                    <ol id="posts-list" class="hfeed">
+
+            <li><article class="hentry">
+                <header>
+                    <h1><a href="/mpirun-to-wrapper.html" rel="bookmark"
+                           title="Permalink to mpirun と wrapper">mpirun と wrapper</a></h1>
+                </header>
+
+                <div class="entry-content">
 <footer class="post-info">
         <abbr class="published" title="2016-05-08T10:20:00+09:00">
                 Published: Sun 08 May 2016
@@ -33,7 +92,7 @@
         </address>
 <p>In <a href="/category/mpi.html">MPI</a>.</p>
 <p>tags: <a href="/tag/mpi.html">mpi</a> </p>
-</footer><!-- /.post-info --><h1>mpirunとwrapper</h1>
+</footer><!-- /.post-info -->                <h1>mpirunとwrapper</h1>
 <p>mpirunでジョブを起動する際、通常は</p>
 <div class="highlight"><pre><span></span>mpirun MPI_BINARY
 </pre></div>
@@ -62,42 +121,10 @@
 <div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">subprocess</span>
 
 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="s2">&quot;./mpitest&quot;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
-
-<span class="n">main</span><span class="p">()</span>
-</pre></div>
-
-
-<h2>テスト</h2>
-<p>pythonのwrapperをmpirunで起動する。</p>
-<div class="highlight"><pre><span></span>$ mpirun -np <span class="m">2</span> python launchtest.py 
-<span class="nv">rank</span> <span class="o">=</span> <span class="m">0</span>
-<span class="nv">rank</span> <span class="o">=</span> <span class="m">1</span>
-</pre></div>
-
-
-<p>うむ動いた。</p>
-<h2>どうなってるのか？</h2>
-<p>よくわからないが、おそらくmpirunが環境変数にいろいろ値をセットしていて、
-それを見てmpiライブラリが何かしているのだろう。</p>
-<p>下のようにして環境変数を見てみると、山のようにいろいろでてくる。</p>
-<div class="highlight"><pre><span></span>$ mpirun --host localhost -np <span class="m">1</span> printenv <span class="p">|</span> grep OMPI
-<span class="nv">OMPI_COMMAND</span><span class="o">=</span>printenv
-<span class="nv">OMPI_MCA_orte_precondition_transports</span><span class="o">=</span>e86c6dc6f222e793-e5e9486159da2671
-<span class="nv">OMPI_MCA_orte_peer_modex_id</span><span class="o">=</span><span class="m">0</span>
-<span class="nv">OMPI_MCA_orte_peer_init_barrier_id</span><span class="o">=</span><span class="m">1</span>
-<span class="nv">OMPI_MCA_orte_peer_fini_barrier_id</span><span class="o">=</span><span class="m">2</span>
-....
-</pre></div>
-
-
-<p>問題はこの方法にどのくらいポータビリティがあるのか、だなあ。。</p>                </article>
-            </aside><!-- /#featured -->
-                <section id="content" class="body">
-                    <h1>Other articles</h1>
-                    <hr />
-                    <ol id="posts-list" class="hfeed">
+    <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="s2">&quot;./mpitest …</span></pre></div>
+                <a class="readmore" href="/mpirun-to-wrapper.html">read more</a>
+                </div><!-- /.entry-content -->
+            </article></li>
 
             <li><article class="hentry">
                 <header>

@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
         <meta charset="utf-8" />
-        <title>Hidemon - rust</title>
+        <title>Rust での -1.abs()</title>
         <link rel="stylesheet" href="/theme/css/main.css" />
 
         <!--[if IE]>
@@ -16,13 +16,18 @@
                 <nav><ul>
                     <li><a href="/pages/about.html">About</a></li>
                     <li><a href="/category/mpi.html">MPI</a></li>
-                    <li><a href="/category/rust.html">Rust</a></li>
+                    <li class="active"><a href="/category/rust.html">Rust</a></li>
                 </ul></nav>
         </header><!-- /#banner -->
+<section id="content" class="body">
+  <article>
+    <header>
+      <h1 class="entry-title">
+        <a href="/rust-deno-1abs.html" rel="bookmark"
+           title="Permalink to Rust での -1.abs()">Rust での -1.abs()</a></h1>
+    </header>
 
-            <aside id="featured" class="body">
-                <article>
-                    <h1 class="entry-title"><a href="/rust-deno-1abs.html">Rust での -1.abs()</a></h1>
+    <div class="entry-content">
 <footer class="post-info">
         <abbr class="published" title="2016-05-23T10:20:00+09:00">
                 Published: Mon 23 May 2016
@@ -33,7 +38,7 @@
         </address>
 <p>In <a href="/category/rust.html">Rust</a>.</p>
 <p>tags: <a href="/tag/rust.html">rust</a> </p>
-</footer><!-- /.post-info --><h1>Rustでの -1.abs()</h1>
+</footer><!-- /.post-info -->      <h1>Rustでの -1.abs()</h1>
 <p>Rustでは、C++やJavaと違って、組み込み型に対してメソッドを定義する事ができる。
 なので、i32の変数aの絶対値を求めるには、</p>
 <div class="highlight"><pre><span></span>a.abs();
@@ -68,69 +73,11 @@ irb<span class="o">(</span>main<span class="o">)</span>:001:0&gt; -1.abs
 
 <p>なんとびっくり。
 Rubyではメソッド呼び出しはすべての演算子よりも優先順位が低いのだ。</p>
-<p>それはそれで1つの見識という気もする。</p>                </article>
-            </aside><!-- /#featured -->
-                <section id="content" class="body">
-                    <h1>Other articles</h1>
-                    <hr />
-                    <ol id="posts-list" class="hfeed">
+<p>それはそれで1つの見識という気もする。</p>
+    </div><!-- /.entry-content -->
 
-            <li><article class="hentry">
-                <header>
-                    <h1><a href="/rustnoclosuretocopyclone.html" rel="bookmark"
-                           title="Permalink to RustのClosureとCopy/Clone">RustのClosureとCopy/Clone</a></h1>
-                </header>
-
-                <div class="entry-content">
-<footer class="post-info">
-        <abbr class="published" title="2016-05-06T10:20:00+09:00">
-                Published: Fri 06 May 2016
-        </abbr>
-
-        <address class="vcard author">
-                By                         <a class="url fn" href="/author/hidemoto-nakada.html">Hidemoto Nakada</a>
-        </address>
-<p>In <a href="/category/rust.html">Rust</a>.</p>
-<p>tags: <a href="/tag/rust.html">rust</a> </p>
-</footer><!-- /.post-info -->                <h1>RustのClosureとCopy</h1>
-<p>RustのClosureはCopyを実装できないらしい。
-一方で普通の関数では、問題なく自動的に実装されるようだ。</p>
-<div class="highlight"><pre><span></span><span class="nt">fn</span> <span class="nt">spawner_multi</span><span class="o">&lt;</span><span class="nt">F</span><span class="o">&gt;</span> <span class="o">(</span><span class="nt">handler</span> <span class="o">:</span> <span class="nt">F</span> <span class="o">)</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">()</span> 
-<span class="nt">where</span> <span class="nt">F</span> <span class="o">:</span> <span class="nt">Fn</span><span class="o">()</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">()</span> <span class="o">+</span> <span class="nt">Send</span> <span class="o">+</span> <span class="nt">Sync</span> <span class="o">+</span> <span class="nt">Copy</span> <span class="o">+</span> <span class="err">&#39;</span><span class="nt">static</span> 
-<span class="p">{</span>
-     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span> <span class="p">);</span>
-     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span> <span class="p">);</span>
-     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span> <span class="p">);</span>
-<span class="p">}</span>
-</pre></div>
-
-
-<p>こういう、受け取ったFnを復数回spawnする関数を用意しておいて、</p>
-<div class="highlight"><pre><span></span>fn handler() -&gt; () {
-     println!{&quot;in the handler&quot;};
-}
-
-fn main() {
-     spawner_multi( handler );
-}
-</pre></div>
-
-
-<p>とするのはOKなのだが、</p>
-<div class="highlight"><pre><span></span>fn main() {
-     spawner_multi( || handler() );
-}
-</pre></div>
-
-
-<p>とすると、</p>
-<div class="highlight"><pre><span></span>77 |      spawner_multi( || handler() );
-   |      ^^^^^^^^^^^^^ the trait `std::marker …</pre></div>
-                <a class="readmore" href="/rustnoclosuretocopyclone.html">read more</a>
-                </div><!-- /.entry-content -->
-            </article></li>
-                </ol><!-- /#posts-list -->
-                </section><!-- /#content -->
+  </article>
+</section>
         <section id="extras" class="body">
                 <div class="blogroll">
                         <h2>links</h2>

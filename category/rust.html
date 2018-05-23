@@ -22,7 +22,66 @@
 
             <aside id="featured" class="body">
                 <article>
-                    <h1 class="entry-title"><a href="/rustnoclosuretocopyclone.html">RustのClosureとCopy/Clone</a></h1>
+                    <h1 class="entry-title"><a href="/rust-deno-1abs.html">Rust での -1.abs()</a></h1>
+<footer class="post-info">
+        <abbr class="published" title="2016-05-23T10:20:00+09:00">
+                Published: Mon 23 May 2016
+        </abbr>
+
+        <address class="vcard author">
+                By                         <a class="url fn" href="/author/hidemoto-nakada.html">Hidemoto Nakada</a>
+        </address>
+<p>In <a href="/category/rust.html">Rust</a>.</p>
+<p>tags: <a href="/tag/rust.html">rust</a> </p>
+</footer><!-- /.post-info --><h1>Rustでの -1.abs()</h1>
+<p>Rustでは、C++やJavaと違って、組み込み型に対してメソッドを定義する事ができる。
+なので、i32の変数aの絶対値を求めるには、</p>
+<div class="highlight"><pre><span></span>a.abs();
+</pre></div>
+
+
+<p>のように書ける。すばらしい。</p>
+<p>しかしここで落とし穴が１つ。</p>
+<div class="highlight"><pre><span></span>-1.abs();
+</pre></div>
+
+
+<p>とすると、答えが-1になる。なぜか。</p>
+<p><code>-1</code>は、なんとなく1つの不可分なリテラルのような気がしてしまうが、
+単項前置演算子 <code>-</code> が数値リテラル<code>1</code>の前に付いたものだ。
+したがって、<code>-1.abs()</code>が<code>(-1).abs()</code>となるか<code>-(1.abs())</code>となるかは、
+演算子の優先順位によって定まる。そして、Rustではメソッド呼び出しの
+優先順位のほうが単項演算子よりも高いので、後者として解釈されるので、
+答えが<code>-1</code>になるのだ。</p>
+<p>ちなみに、演算子の優先順位は基本的にC++を引き継いでいるので、順位は
+C++でもJavaでも変わらない。C++やJavaでこれが問題にならないのは、
+そもそも組み込み型に対してメソッドを定義できないからだろう。</p>
+<p>まあ、<code>-a.abs()</code> なら <code>-(a.abs())</code>の方が自然なような気がするので
+リテラルのときだけ気をつければ済む話ではある。</p>
+<h2>Rubyでは</h2>
+<p>同様に整数型にメソッドが定義されている、Rubyはどうだろう。</p>
+<div class="highlight"><pre><span></span>$ irb
+irb<span class="o">(</span>main<span class="o">)</span>:001:0&gt; -1.abs
+<span class="o">=</span>&gt; <span class="m">1</span>
+</pre></div>
+
+
+<p>なんとびっくり。
+Rubyではメソッド呼び出しはすべての演算子よりも優先順位が低いのだ。</p>
+<p>それはそれで1つの見識という気もする。</p>                </article>
+            </aside><!-- /#featured -->
+                <section id="content" class="body">
+                    <h1>Other articles</h1>
+                    <hr />
+                    <ol id="posts-list" class="hfeed">
+
+            <li><article class="hentry">
+                <header>
+                    <h1><a href="/rustnoclosuretocopyclone.html" rel="bookmark"
+                           title="Permalink to RustのClosureとCopy/Clone">RustのClosureとCopy/Clone</a></h1>
+                </header>
+
+                <div class="entry-content">
 <footer class="post-info">
         <abbr class="published" title="2016-05-06T10:20:00+09:00">
                 Published: Fri 06 May 2016
@@ -33,7 +92,7 @@
         </address>
 <p>In <a href="/category/rust.html">Rust</a>.</p>
 <p>tags: <a href="/tag/rust.html">rust</a> </p>
-</footer><!-- /.post-info --><h1>RustのClosureとCopy</h1>
+</footer><!-- /.post-info -->                <h1>RustのClosureとCopy</h1>
 <p>RustのClosureはCopyを実装できないらしい。
 一方で普通の関数では、問題なく自動的に実装されるようだ。</p>
 <div class="highlight"><pre><span></span><span class="nt">fn</span> <span class="nt">spawner_multi</span><span class="o">&lt;</span><span class="nt">F</span><span class="o">&gt;</span> <span class="o">(</span><span class="nt">handler</span> <span class="o">:</span> <span class="nt">F</span> <span class="o">)</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">()</span> 
@@ -66,39 +125,12 @@ fn main() {
 
 <p>とすると、</p>
 <div class="highlight"><pre><span></span>77 |      spawner_multi( || handler() );
-   |      ^^^^^^^^^^^^^ the trait `std::marker::Copy` is not implemented for `[closure@src/main.rs:77:18: 77:30]`
-</pre></div>
-
-
-<p>のようなエラーがでてコンパイルできない。</p>
-<p>関数はCopyなのだが、関数を呼び出すだけのClosureでもCopyにはならないということらしい。
-言われてみれば、関数は単なるポインタっぽいのでビットパターンコピーでCopyできるけど、
-Closureはもう少し複雑な何かなので、Copyできないのも不思議ではないのかも。</p>
-<h2>Cloneだと？</h2>
-<p>では、Cloneにしてみる。明示的に<code>clone</code>を呼び出す。</p>
-<div class="highlight"><pre><span></span><span class="nt">fn</span> <span class="nt">spawner_multi</span><span class="o">&lt;</span><span class="nt">F</span><span class="o">&gt;</span> <span class="o">(</span><span class="nt">handler</span> <span class="o">:</span> <span class="nt">F</span> <span class="o">)</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">()</span> 
-<span class="nt">where</span> <span class="nt">F</span> <span class="o">:</span> <span class="nt">Fn</span><span class="o">()</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">()</span> <span class="o">+</span> <span class="nt">Send</span> <span class="o">+</span> <span class="nt">Sync</span> <span class="o">+</span> <span class="nt">Clone</span> <span class="o">+</span> <span class="err">&#39;</span><span class="nt">static</span> 
-<span class="p">{</span>
-     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span><span class="err">.</span><span class="kc">clone</span><span class="err">(</span><span class="p">)</span> <span class="p">);</span>
-     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span><span class="err">.</span><span class="kc">clone</span><span class="err">(</span><span class="p">)</span> <span class="p">);</span>
-     <span class="n">thread</span><span class="p">:</span><span class="o">:</span><span class="nf">spawn</span><span class="p">(</span> <span class="n">handler</span><span class="err">.</span><span class="kc">clone</span><span class="err">(</span><span class="p">)</span> <span class="p">);</span>
-<span class="p">}</span>
-</pre></div>
-
-
-<p>これでも、関数はOKだがClosureだと動かない。
-Closureは自動的にCloneにならないということなのだろうが、
-明示的にCloneにする方法もわからない。</p>
-<p>一般論として、キャプチャされた変数がすべてCloneなのであれば、
-ClosureもCloneになってくれてもいいような気がする。</p>
-<h2>Issueがあった</h2>
-<p>ぐぐってみたところ、Issueが上がっていた。
-<a href="https://github.com/rust-lang/rfcs/issues/1369">Make Clone a lang-item and implement it for closures whose members are all Clone #1369</a>、
-<a href="https://github.com/rust-lang/rust/issues/44490">Tracking issue for RFC 2132: copy_closures/clone_closures #44490</a>。</p>
-<p>2018年3月25日にCloseされている。この日は1.25.0がでた日だ。
-1.25.0では動かないし、release noteにも載っていない。
-次の1.26では使えるようになるのだろうか。</p>                </article>
-            </aside><!-- /#featured -->
+   |      ^^^^^^^^^^^^^ the trait `std::marker …</pre></div>
+                <a class="readmore" href="/rustnoclosuretocopyclone.html">read more</a>
+                </div><!-- /.entry-content -->
+            </article></li>
+                </ol><!-- /#posts-list -->
+                </section><!-- /#content -->
         <section id="extras" class="body">
                 <div class="blogroll">
                         <h2>links</h2>

@@ -85,7 +85,9 @@
 <p>うむ動いた。</p>
 <h2>どうなってるのか？</h2>
 <p>よくわからないが、おそらくmpirunが環境変数にいろいろ値をセットしていて、
-それを見てmpiライブラリが何かしているのだろう。</p>
+それを見てmpiライブラリが何かしているのだろう。
+だからwrapperが環境変数をフィルタリングしたりしなければ、
+なんとでもなる。</p>
 <p>下のようにして環境変数を見てみると、山のようにいろいろでてくる。</p>
 <div class="highlight"><pre><span></span>$ mpirun --host localhost -np <span class="m">1</span> printenv <span class="p">|</span> grep OMPI
 <span class="nv">OMPI_COMMAND</span><span class="o">=</span>printenv
@@ -97,7 +99,8 @@
 </pre></div>
 
 
-<p>問題はこの方法にどのくらいポータビリティがあるのか、だなあ。。</p>
+<p>問題はこの方法にどのくらいポータビリティがあるのか、だなあ。。
+手元ではOpenMPIを使ったけど、例えばmpichでも同じように動くんだろうか。</p>
     </div><!-- /.entry-content -->
 
   </article>
